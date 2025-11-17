@@ -1,0 +1,25 @@
+[project]
+name = "lumacorp-api"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "greatlolz",email = "88207459+GreatLolz@users.noreply.github.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pyesi-client (>=0.1.1,<0.2.0)",
+    "fastapi (>=0.121.2,<0.122.0)",
+    "uvicorn (>=0.38.0,<0.39.0)",
+    "prometheus-client (>=0.23.1,<0.24.0)",
+    "prometheus-fastapi-instrumentator (>=7.1.0,<8.0.0)",
+    "httpx (>=0.28.1,<0.29.0)"
+]
+
+[tool.poetry]
+package-mode = false
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
