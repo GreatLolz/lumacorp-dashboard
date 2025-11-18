@@ -7,9 +7,11 @@ class Settings(BaseSettings):
     eve_client_secret: str
     eve_callback_url: str = "http://localhost:8000/callback"
 
-    esi_client_character_id: str
-    esi_client_corp_id: str
     esi_client_useragent: str = "lumacorp-api/0.1.0"
+
+    character_id: str | None = None
+    corp_id: str | None = None
+    scopes: list[str] = ["esi-wallet.read_character_wallet.v1"]
     
     token_file_path: str = "./data/tokens.json"
     

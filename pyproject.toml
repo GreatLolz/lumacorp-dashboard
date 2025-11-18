@@ -6,9 +6,8 @@ authors = [
     {name = "greatlolz",email = "88207459+GreatLolz@users.noreply.github.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11,<4.0"
 dependencies = [
-    "pyesi-client (>=0.1.1,<0.2.0)",
     "fastapi (>=0.121.2,<0.122.0)",
     "uvicorn (>=0.38.0,<0.39.0)",
     "prometheus-client (>=0.23.1,<0.24.0)",
@@ -16,6 +15,7 @@ dependencies = [
     "pydantic-settings (>=2.12.0,<3.0.0)",
     "python-dotenv (>=1.2.1,<2.0.0)",
     "dotenv (>=0.9.9,<0.10.0)",
+    "preston (>=4.12.1,<5.0.0)",
 ]
 
 [tool.poetry]
