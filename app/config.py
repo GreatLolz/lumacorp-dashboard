@@ -9,6 +9,9 @@ class Settings(BaseSettings):
 
     esi_client_useragent: str = "lumacorp-api/0.1.0"
 
+    database_url: str = "sqlite:///./data/lumacorp.db"
+    refresh_token_secret: str
+
     character_id: str | None = None
     corp_id: str | None = None
     scopes: list[str] = ["esi-wallet.read_character_wallet.v1"]
