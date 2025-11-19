@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     character_id: str | None = None
     corp_id: str | None = None
-    scopes: list[str] = ["esi-wallet.read_character_wallet.v1"]
+    scopes: list[str] = ["esi-wallet.read_corporation_wallets.v1", "esi-corporations.read_divisions.v1"]
     
     token_file_path: str = "./data/tokens.json"
     
