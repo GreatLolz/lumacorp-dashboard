@@ -1,0 +1,35 @@
+version: '3.9'
+
+services:
+  fastapi:
+    build: ./app
+    container_name: eve_fastapi
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    env_file:
+      - ./.env
+
+  prometheus:
+    image: prom/prometheus:latest
+    platform: linux/amd64
+    container_name: eve_prometheus
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    depends_on:
+      - fastapi
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    platform: linux/amd64
+    container_name: eve_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=secret
+    depends_on:
+      - prometheus
+    restart: unless-stopped
