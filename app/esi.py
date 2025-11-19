@@ -18,7 +18,7 @@ class EsiClientManager:
             client_secret=settings.eve_client_secret,
             callback_url=settings.eve_callback_url,
             user_agent=settings.esi_client_useragent,
-            scopes=settings.scopes,
+            scope=" ".join(settings.scopes),
             refresh_token=refresh_token,
             refresh_token_callback=self._on_refresh_token,
         )
@@ -40,9 +40,9 @@ class EsiClientManager:
             if token and token.character_id:
                 settings.character_id = token.character_id
                 corp = self._esi.get_op(
-                    "get_characters_character_id",
+                    "get_characters_character_id_corporationhistory",
                     character_id=token.character_id,
-                ).get("corporation_id")
+                )[0]["corporation_id"]
                 settings.corp_id = corp
 
         return self._esi
@@ -70,8 +70,8 @@ class EsiClientManager:
         settings.character_id = cid
 
         corp = new_esi.get_op(
-            "get_characters_character_id", character_id=cid
-        ).get("corporation_id")
+            "get_characters_character_id_corporationhistory", character_id=cid
+        )[0]["corporation_id"]
         settings.corp_id = corp
 
         rt = new_esi.refresh_token
