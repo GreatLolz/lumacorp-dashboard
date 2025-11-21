@@ -37,7 +37,7 @@ def _get_market_order_type_ids() -> set[int]:
 
     while True:
         try:
-            orders = esi.get_op("get_markets_region_id_orders", region_id=settings.region_id, page=page)
+            orders = esi.get_op("get_markets_region_id_orders", region_id=settings.region_id, page=page, order_type="sell")
         except HTTPError as e:
             if e.response.status_code == 404:
                 break
@@ -81,12 +81,12 @@ def _parse_sde_files() -> list[Item]:
         
         materials_list: list[Material] = []
         for material in materials:
-            type_id = material.get("typeID")
+            material_type_id = material.get("typeID")
             quantity = material.get("quantity")
-            material_name = item_names.get(type_id)
+            material_name = item_names.get(material_type_id)
             if not material_name:
                 continue
-            materials_list.append(Material(type_id=type_id, name=material_name, quantity=quantity))
+            materials_list.append(Material(type_id=material_type_id, name=material_name, quantity=quantity))
 
         items.append(Item(blueprint_id=blueprint_id, type_id=type_id, name=name, materials=materials_list))
     return items
@@ -98,7 +98,8 @@ def get_items() -> list[Item]:
 
     if os.path.exists(PARSED_PATH):
         with open(PARSED_PATH, "r", encoding="utf-8") as f:
-            items_cache = json.load(f)
+            items_data = json.load(f)
+        items_cache = [Item.model_validate(d) for d in items_data]
         return items_cache
 
     items = _parse_sde_files()
