@@ -6,24 +6,33 @@ from app.utils.parse import parse_jsonl
 import os
 import json
 from app.config import settings
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 TYPES_PATH = "./data/sde/types.jsonl"
 BLUEPRINTS_PATH = "./data/sde/blueprints.jsonl"
 PARSED_PATH = "./data/sde/parsed/items.json"
+
+executor = ThreadPoolExecutor(max_workers=4)
 
 class Material(BaseModel):
     type_id: int
     name: str
     quantity: int
 
+class Skills(BaseModel):
+    skill_id: int
+    level: int
+
 class Item(BaseModel):
     blueprint_id: int
     type_id: int
     name: str
     materials: list[Material]
+    blueprint_skills: list[Skills]
 
-items_cache: list[Item] = []
 market_order_type_ids: set[int] = set()
+character_skills: list[Skills] = []
 
 def _get_market_order_type_ids() -> set[int]:
     global market_order_type_ids
@@ -50,8 +59,30 @@ def _get_market_order_type_ids() -> set[int]:
     market_order_type_ids = type_ids
     return type_ids
 
-def _is_blueprint_available(blueprint_id: int) -> bool:
-    return blueprint_id in _get_market_order_type_ids()
+def _get_character_skills(refresh: bool = False) -> list[Skills]:
+    global character_skills
+    if character_skills and not refresh:
+        return character_skills
+
+    esi = esi_manager.get_client()
+    skills = esi.get_op("get_characters_character_id_skills", character_id=settings.character_id)["skills"]
+    character_skills = [Skills(skill_id=skill.get("skill_id"), level=skill.get("active_skill_level")) for skill in skills]
+    print("Discoverd skills: ", len(character_skills))
+    return character_skills
+
+def _character_has_skills(item: Item) -> bool:
+    character_skills = _get_character_skills()
+
+    for blueprint_skill in item.blueprint_skills:
+        if blueprint_skill.skill_id not in [s.skill_id for s in character_skills]:
+            return False
+
+        if blueprint_skill.level > [s.level for s in character_skills if s.skill_id == blueprint_skill.skill_id][0]:
+            return False
+    return True
+
+def _is_blueprint_available(item: Item) -> bool:
+    return item.blueprint_id in _get_market_order_type_ids() and _character_has_skills(item)
 
 def _parse_sde_files() -> list[Item]:
     item_names = {}
@@ -88,28 +119,41 @@ def _parse_sde_files() -> list[Item]:
                 continue
             materials_list.append(Material(type_id=material_type_id, name=material_name, quantity=quantity))
 
-        items.append(Item(blueprint_id=blueprint_id, type_id=type_id, name=name, materials=materials_list))
+        skills = manufacturing.get("skills")
+        if not skills:
+            continue
+
+        skills_list: list[Skills] = []
+        for skill in skills:
+            skills_list.append(Skills(skill_id=skill.get("typeID"), level=skill.get("level")))
+
+        items.append(Item(
+            blueprint_id=blueprint_id, 
+            type_id=type_id, 
+            name=name, 
+            materials=materials_list,
+            blueprint_skills=skills_list
+        ))
+
+    print("[SDE] Total items: ", len(items))
+    items = [item for item in items if _is_blueprint_available(item)]
+    print("[SDE] Items with available blueprint: ", len(items))
+    
+    with open(PARSED_PATH, "w", encoding="utf-8") as f:
+        json.dump([i.model_dump() for i in items], f, indent=4)
+    
     return items
 
-def get_items() -> list[Item]:
-    global items_cache
-    if items_cache:
-        return items_cache
-
+async def get_items() -> list[Item]:
     if os.path.exists(PARSED_PATH):
         with open(PARSED_PATH, "r", encoding="utf-8") as f:
             items_data = json.load(f)
-        items_cache = [Item.model_validate(d) for d in items_data]
-        return items_cache
+        return [Item.model_validate(d) for d in items_data]
 
-    items = _parse_sde_files()
-    print("Total items: ", len(items))
-    items = [item for item in items if _is_blueprint_available(item.blueprint_id)]
-    print("Items with available blueprint: ", len(items))
-    
-    items_cache = items
-    with open(PARSED_PATH, "w", encoding="utf-8") as f:
-        json.dump([i.model_dump() for i in items], f, indent=4)
+    loop = asyncio.get_event_loop()
+    print("[SDE] Processing SDE files")
+    items = await loop.run_in_executor(executor, _parse_sde_files)
+    print("[SDE] SDE files processed")    
 
     return items
 
