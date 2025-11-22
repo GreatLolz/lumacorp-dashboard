@@ -3,12 +3,14 @@ from fastapi import FastAPI
 from app.db import engine, Base
 from app.market import get_profit_indexes
 import asyncio
+from app.config import settings
 
 async def load_data():
     try:
         while True:
             try:
-                await get_profit_indexes(refresh=True)
+                if settings.character_id:
+                    await get_profit_indexes(refresh=True)
             except Exception as e:
                 print(f"Error loading profit data: {e}")
             for _ in range(24 * 60 * 60 // 10):

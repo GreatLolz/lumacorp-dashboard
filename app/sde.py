@@ -59,9 +59,9 @@ def _get_market_order_type_ids() -> set[int]:
     market_order_type_ids = type_ids
     return type_ids
 
-def _get_character_skills(refresh: bool = False) -> list[Skills]:
+def _get_character_skills() -> list[Skills]:
     global character_skills
-    if character_skills and not refresh:
+    if character_skills:
         return character_skills
 
     esi = esi_manager.get_client()
@@ -139,17 +139,9 @@ def _parse_sde_files() -> list[Item]:
     items = [item for item in items if _is_blueprint_available(item)]
     print("[SDE] Items with available blueprint: ", len(items))
     
-    with open(PARSED_PATH, "w", encoding="utf-8") as f:
-        json.dump([i.model_dump() for i in items], f, indent=4)
-    
     return items
 
 async def get_items() -> list[Item]:
-    if os.path.exists(PARSED_PATH):
-        with open(PARSED_PATH, "r", encoding="utf-8") as f:
-            items_data = json.load(f)
-        return [Item.model_validate(d) for d in items_data]
-
     loop = asyncio.get_event_loop()
     print("[SDE] Processing SDE files")
     items = await loop.run_in_executor(executor, _parse_sde_files)
