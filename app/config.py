@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     region_id: int = 10000043
     avg_daily_volume_window: int = 5
     max_profit_indexes: int = 50
+    min_profit_threshold: float = 10000000
     
     class Config:
         case_sensitive = False

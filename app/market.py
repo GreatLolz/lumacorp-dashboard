@@ -85,7 +85,7 @@ def _calculate_profit_indexes(items: list[Item]) -> list[ProfitIndex]:
     profit_indexes: list[ProfitIndex] = []
     for item in items:
         profit_index, sell_price, production_cost = _get_item_profit_index(item)
-        if not profit_index or profit_index < 0:
+        if not profit_index or profit_index < 0 or profit_index < settings.min_profit_threshold:
             continue
         profit_indexes.append(ProfitIndex(
             item_name=item.name, 
