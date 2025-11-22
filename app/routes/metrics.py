@@ -12,6 +12,7 @@ wallet_balance_gauge = Gauge("wallet_balance", "Wallet balance per division", ["
 profitability_gauge = Gauge("profitability", "Profitability per item", ["item_name", "item_id"])
 sell_price_gauge = Gauge("sell_price", "Sell price per item", ["item_name", "item_id"])
 production_cost_gauge = Gauge("production_cost", "Production cost per item", ["item_name", "item_id"])
+avg_volume_gauge = Gauge("avg_volume", "Average volume per item", ["item_name", "item_id"])
 
 router = APIRouter(prefix="/metrics")
 
@@ -34,4 +35,5 @@ async def profitability():
         profitability_gauge.labels(item_name=index.item_name, item_id=index.item_id).set(index.profit_index)
         sell_price_gauge.labels(item_name=index.item_name, item_id=index.item_id).set(index.sell_price)
         production_cost_gauge.labels(item_name=index.item_name, item_id=index.item_id).set(index.production_cost)
+        avg_volume_gauge.labels(item_name=index.item_name, item_id=index.item_id).set(index.avg_volume)
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)

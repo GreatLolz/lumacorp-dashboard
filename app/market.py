@@ -7,6 +7,7 @@ from typing import List, Dict
 from pydantic import BaseModel
 from concurrent.futures import ThreadPoolExecutor
 import asyncio
+from datetime import datetime, timedelta, timezone
 
 material_prices = {}
 
@@ -20,6 +21,8 @@ class ProfitIndex(BaseModel):
     profit_index: float
     sell_price: float
     production_cost: float
+    avg_volume: float
+
 
 def _get_lowest_order_price(type_id: int, order_type: str) -> float:
     esi = esi_manager.get_client()
@@ -50,18 +53,26 @@ def _get_item_margin(item: Item) -> float:
 
 def _get_item_daily_avg_volume(item: Item) -> float:
     esi = esi_manager.get_client()
-
-    total_volume = 0
-    history = esi.get_op("get_markets_region_id_history", region_id=settings.region_id, type_id=item.type_id)[-settings.avg_daily_volume_window:]
-    for entry in history:
-        total_volume += entry["volume"]
     
+    # Get history data
+    history = esi.get_op("get_markets_region_id_history", region_id=settings.region_id, type_id=item.type_id)
+    
+    end_date = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    start_date = end_date - timedelta(days=settings.avg_daily_volume_window)
+    
+    total_volume = 0
+    
+    for entry in history:
+        entry_date = datetime.strptime(entry['date'], '%Y-%m-%d').replace(tzinfo=timezone.utc)
+        if start_date <= entry_date < end_date:
+            total_volume += entry['volume']
+            
     return total_volume / settings.avg_daily_volume_window
 
-def _get_item_profit_index(item: Item) -> tuple[float, float, float]:
+def _get_item_profit_index(item: Item) -> tuple[float, float, float, float]:
     sell_price = _get_lowest_order_price(item.type_id, "sell")
     if not sell_price:
-        return 0, 0, 0
+        return 0, 0, 0, 0
         
     production_cost = 0
     for material in item.materials:
@@ -73,18 +84,18 @@ def _get_item_profit_index(item: Item) -> tuple[float, float, float]:
         
     margin = sell_price - production_cost
     if not margin:
-        return 0, 0, 0
+        return 0, 0, 0, 0
         
     daily_avg_volume = _get_item_daily_avg_volume(item)
     if not daily_avg_volume:
-        return 0, 0, 0
+        return 0, 0, 0, 0
     
-    return margin * daily_avg_volume, sell_price, production_cost
+    return margin * daily_avg_volume, sell_price, production_cost, daily_avg_volume
 
 def _calculate_profit_indexes(items: list[Item]) -> list[ProfitIndex]:
     profit_indexes: list[ProfitIndex] = []
     for item in items:
-        profit_index, sell_price, production_cost = _get_item_profit_index(item)
+        profit_index, sell_price, production_cost, daily_avg_volume = _get_item_profit_index(item)
         if not profit_index or profit_index < 0 or profit_index < settings.min_profit_threshold:
             continue
         profit_indexes.append(ProfitIndex(
@@ -92,7 +103,8 @@ def _calculate_profit_indexes(items: list[Item]) -> list[ProfitIndex]:
             item_id=item.type_id, 
             profit_index=profit_index,
             sell_price=sell_price,
-            production_cost=production_cost
+            production_cost=production_cost,
+            avg_volume=daily_avg_volume
         ))
         
 
