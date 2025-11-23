@@ -13,19 +13,17 @@ profitability_gauge = Gauge("profitability", "Profitability per item", ["item_na
 sell_price_gauge = Gauge("sell_price", "Sell price per item", ["item_name", "item_id"])
 production_cost_gauge = Gauge("production_cost", "Production cost per item", ["item_name", "item_id"])
 avg_volume_gauge = Gauge("avg_volume", "Average volume per item", ["item_name", "item_id"])
+blueprint_cost_gauge = Gauge("blueprint_cost", "Blueprint cost per item", ["item_name", "item_id"])
+return_time_seconds_gauge = Gauge("return_time_seconds", "Return time per item", ["item_name", "item_id"])
 
 router = APIRouter(prefix="/metrics")
 
 @router.get("/")
-def metrics():
+async def metrics():
     balances = get_wallet_balance()
     for name, balance in balances.items():
         wallet_balance_gauge.labels(division=name).set(balance)
 
-    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
-
-@router.get("/profitability")
-async def profitability():
     if not os.path.exists(PROFIT_INDEX_PATH):
         return Response(status_code=200)
         
@@ -36,4 +34,8 @@ async def profitability():
         sell_price_gauge.labels(item_name=index.item_name, item_id=index.item_id).set(index.sell_price)
         production_cost_gauge.labels(item_name=index.item_name, item_id=index.item_id).set(index.production_cost)
         avg_volume_gauge.labels(item_name=index.item_name, item_id=index.item_id).set(index.avg_volume)
+        blueprint_cost_gauge.labels(item_name=index.item_name, item_id=index.item_id).set(index.blueprint_cost)
+        return_time_seconds_gauge.labels(item_name=index.item_name, item_id=index.item_id).set(index.return_time_seconds)
+        
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+    

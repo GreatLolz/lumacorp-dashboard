@@ -22,6 +22,8 @@ class ProfitIndex(BaseModel):
     sell_price: float
     production_cost: float
     avg_volume: float
+    blueprint_cost: float
+    return_time_seconds: float
 
 
 def _get_lowest_order_price(type_id: int, order_type: str) -> float:
@@ -98,15 +100,19 @@ def _calculate_profit_indexes(items: list[Item]) -> list[ProfitIndex]:
         profit_index, sell_price, production_cost, daily_avg_volume = _get_item_profit_index(item)
         if not profit_index or profit_index < 0 or profit_index < settings.min_profit_threshold:
             continue
+        blueprint_cost = _get_lowest_order_price(item.blueprint_id, "sell")
+        return_time_seconds = (blueprint_cost / profit_index) * 24 * 60 * 60
+
         profit_indexes.append(ProfitIndex(
             item_name=item.name, 
             item_id=item.type_id, 
             profit_index=profit_index,
             sell_price=sell_price,
             production_cost=production_cost,
-            avg_volume=daily_avg_volume
+            avg_volume=daily_avg_volume,
+            blueprint_cost=blueprint_cost,
+            return_time_seconds=return_time_seconds
         ))
-        
 
     profit_indexes = sorted(profit_indexes, key=lambda x: x.profit_index, reverse=True)[:settings.max_profit_indexes-1]
     

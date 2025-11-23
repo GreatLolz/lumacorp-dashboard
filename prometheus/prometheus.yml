@@ -5,7 +5,3 @@ scrape_configs:
   - job_name: 'fastapi_esi'
     static_configs:
       - targets: ['fastapi:8000']
-  - job_name: 'market_profitability_daily'
-    metrics_path: /metrics/profitability
-    static_configs:
-      - targets: ['fastapi:8000']
