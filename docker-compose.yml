@@ -28,6 +28,8 @@ services:
     image: grafana/grafana:latest
     platform: linux/amd64
     container_name: eve_grafana
+    volumes:
+      - grafana:/var/lib/grafana
     ports:
       - "3000:3000"
     environment:
@@ -35,3 +37,6 @@ services:
     depends_on:
       - prometheus
     restart: unless-stopped
+
+volumes:
+  grafana:
