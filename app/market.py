@@ -1,6 +1,6 @@
 from app.esi import esi_manager
 from app.config import settings
-from app.sde import Item, get_items
+from app.sde import Item, get_items, get_corp_blueprint_items
 import os
 import json
 from typing import List, Dict
@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 material_prices = {}
 
 PROFIT_INDEX_PATH = "./data/market/profit_index.json"
+CORP_PROFIT_INDEX_PATH = "./data/market/corp_profit_index.json"
 
 executor = ThreadPoolExecutor(max_workers=4)
 
@@ -94,7 +95,7 @@ def _get_item_profit_index(item: Item) -> tuple[float, float, float, float]:
     
     return margin * daily_avg_volume, sell_price, production_cost, daily_avg_volume
 
-def _calculate_profit_indexes(items: list[Item]) -> list[ProfitIndex]:
+def _calculate_profit_indexes(items: list[Item], output_path: str) -> list[ProfitIndex]:
     profit_indexes: list[ProfitIndex] = []
     for item in items:
         profit_index, sell_price, production_cost, daily_avg_volume = _get_item_profit_index(item)
@@ -115,8 +116,9 @@ def _calculate_profit_indexes(items: list[Item]) -> list[ProfitIndex]:
         ))
 
     profit_indexes = sorted(profit_indexes, key=lambda x: x.profit_index, reverse=True)[:settings.max_profit_indexes-1]
-    
-    with open(PROFIT_INDEX_PATH, "w", encoding="utf-8") as f:
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump([pi.model_dump() for pi in profit_indexes], f, indent=4)
 
     return profit_indexes
@@ -130,8 +132,27 @@ async def get_profit_indexes(refresh: bool = False) -> list[ProfitIndex]:
     items = await get_items()
     loop = asyncio.get_event_loop()
     print("[MARKET] Calculating profit indexes")
-    profit_indexes = await loop.run_in_executor(executor, _calculate_profit_indexes, items)
+    profit_indexes = await loop.run_in_executor(executor, _calculate_profit_indexes, items, PROFIT_INDEX_PATH)
     print("[MARKET] Profit indexes calculated")
+    return profit_indexes
+
+async def get_corp_profit_indexes(refresh: bool = False) -> list[ProfitIndex]:
+    if not settings.corp_id:
+        return []
+
+    if not refresh and os.path.exists(CORP_PROFIT_INDEX_PATH):
+        with open(CORP_PROFIT_INDEX_PATH, "r", encoding="utf-8") as f:
+            profit_indexes = [ProfitIndex.model_validate(pi) for pi in json.load(f)]
+        return profit_indexes
+
+    items = await get_corp_blueprint_items()
+    if not items:
+        return []
+
+    loop = asyncio.get_event_loop()
+    print("[MARKET] Calculating corp blueprint profit indexes")
+    profit_indexes = await loop.run_in_executor(executor, _calculate_profit_indexes, items, CORP_PROFIT_INDEX_PATH)
+    print("[MARKET] Corp blueprint profit indexes calculated")
     return profit_indexes
 
     

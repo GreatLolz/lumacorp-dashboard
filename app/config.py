@@ -12,6 +12,7 @@ class Settings(BaseSettings):
         "esi-wallet.read_corporation_wallets.v1",
         "esi-corporations.read_divisions.v1",
         "esi-skills.read_skills.v1",
+        "esi-corporations.read_blueprints.v1",
     ]
 
     database_url: str = "sqlite:///./data/lumacorp.db"

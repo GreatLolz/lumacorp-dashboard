@@ -32,6 +32,7 @@ class Item(BaseModel):
     blueprint_skills: list[Skills]
 
 market_order_type_ids: set[int] = set()
+corp_blueprint_type_ids: set[int] = set()
 character_skills: list[Skills] = []
 
 def _get_market_order_type_ids() -> set[int]:
@@ -59,6 +60,43 @@ def _get_market_order_type_ids() -> set[int]:
     market_order_type_ids = type_ids
     return type_ids
 
+def _get_corp_blueprint_type_ids() -> set[int]:
+    global corp_blueprint_type_ids
+    if corp_blueprint_type_ids:
+        return corp_blueprint_type_ids
+
+    if not settings.corp_id:
+        return set()
+
+    esi = esi_manager.get_client()
+
+    page = 1
+    type_ids = set()
+
+    while True:
+        try:
+            blueprints = esi.get_op(
+                "get_corporations_corporation_id_blueprints",
+                corporation_id=settings.corp_id,
+                page=page,
+            )
+        except HTTPError as e:
+            if e.response.status_code == 404:
+                break
+            raise
+
+        if not blueprints:
+            break
+
+        for bp in blueprints:
+            type_ids.add(bp["type_id"])
+
+        page += 1
+
+    corp_blueprint_type_ids = type_ids
+    print("[SDE] Corp blueprint types: ", len(type_ids))
+    return type_ids
+
 def _get_character_skills() -> list[Skills]:
     global character_skills
     if character_skills:
@@ -84,7 +122,10 @@ def _character_has_skills(item: Item) -> bool:
 def _is_blueprint_available(item: Item) -> bool:
     return item.blueprint_id in _get_market_order_type_ids() and _character_has_skills(item)
 
-def _parse_sde_files() -> list[Item]:
+def _is_corp_blueprint_owned(item: Item) -> bool:
+    return item.blueprint_id in _get_corp_blueprint_type_ids() and _character_has_skills(item)
+
+def _parse_sde_raw_items() -> list[Item]:
     item_names = {}
     for item in parse_jsonl(TYPES_PATH):
         item_names[item.get("_key")] = item.get("name").get("en")
@@ -135,17 +176,33 @@ def _parse_sde_files() -> list[Item]:
             blueprint_skills=skills_list
         ))
 
-    print("[SDE] Total items: ", len(items))
-    items = [item for item in items if _is_blueprint_available(item)]
-    print("[SDE] Items with available blueprint: ", len(items))
-    
     return items
+
+def _filter_market_available_items(items: list[Item]) -> list[Item]:
+    print("[SDE] Total items: ", len(items))
+    available_items = [item for item in items if _is_blueprint_available(item)]
+    print("[SDE] Items with available blueprint: ", len(available_items))
+    return available_items
+
+def _filter_corp_owned_items(items: list[Item]) -> list[Item]:
+    print("[SDE] Total items: ", len(items))
+    corp_items = [item for item in items if _is_corp_blueprint_owned(item)]
+    print("[SDE] Items with corp-owned blueprint: ", len(corp_items))
+    return corp_items
 
 async def get_items() -> list[Item]:
     loop = asyncio.get_event_loop()
     print("[SDE] Processing SDE files")
-    items = await loop.run_in_executor(executor, _parse_sde_files)
+    raw_items = await loop.run_in_executor(executor, _parse_sde_raw_items)
+    items = await loop.run_in_executor(executor, _filter_market_available_items, raw_items)
     print("[SDE] SDE files processed")    
 
     return items
 
+async def get_corp_blueprint_items() -> list[Item]:
+    loop = asyncio.get_event_loop()
+    print("[SDE] Processing SDE files for corp blueprints")
+    raw_items = await loop.run_in_executor(executor, _parse_sde_raw_items)
+    items = await loop.run_in_executor(executor, _filter_corp_owned_items, raw_items)
+    print("[SDE] Corp blueprint SDE processed")
+    return items
