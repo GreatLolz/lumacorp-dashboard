@@ -11,7 +11,8 @@ Provide a `.env` file (or environment variables):
 - `EVE_CLIENT_ID`, `EVE_CLIENT_SECRET`, `EVE_CALLBACK_URL` (OAuth)
 - `REFRESH_TOKEN_SECRET` (JWT refresh handling)
 - Optional: `CHARACTER_ID`, `CORP_ID`, `REGION_ID`, `AVG_DAILY_VOLUME_WINDOW`, `MAX_PROFIT_INDEXES`, `MIN_PROFIT_THRESHOLD`, `DATABASE_URL`
-- Optional scheduling: `PROFIT_REFRESH_SECONDS` (default 86400), `WALLET_REFRESH_SECONDS` (default 300)
+- Caching: `REDIS_URL` (default `redis://localhost:6379/0`) for profitability snapshots, corp blueprint lookups, and wallet balance cache.
+- Scheduling: `PROFIT_REFRESH_SECONDS` (default 86400), `WALLET_REFRESH_SECONDS` (default 300)
 
 ## Project Layout
 - `app/main.py` – FastAPI app with background market refresher

@@ -1,42 +1,28 @@
-version: '3.9'
-
 services:
   fastapi:
     build: ./app
-    container_name: eve_fastapi
-    ports:
-      - "8000:8000"
+    container_name: eveesi
+#    ports:
+#      - "8000:8000"
     restart: unless-stopped
     env_file:
       - ./.env
     volumes:
       - ./data:/app/data
-
-  prometheus:
-    image: prom/prometheus:latest
-    platform: linux/amd64
-    container_name: eve_prometheus
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
+    networks:
+      - prom
     depends_on:
-      - fastapi
-    restart: unless-stopped
+      - redis
 
-  grafana:
-    image: grafana/grafana:latest
-    platform: linux/amd64
-    container_name: eve_grafana
-    volumes:
-      - grafana:/var/lib/grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=secret
-    depends_on:
-      - prometheus
+  redis:
+    image: redis:7-alpine
+    container_name: eveesi_redis
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
     restart: unless-stopped
+    networks:
+      - prom
 
-volumes:
-  grafana:
+networks:
+  prom:
+    external: true
+    name: secmon

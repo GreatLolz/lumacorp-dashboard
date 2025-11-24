@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     min_profit_threshold: float = 10000000
     profit_refresh_seconds: int = 24 * 60 * 60
     wallet_refresh_seconds: int = 5 * 60
+    redis_url: str = "redis://localhost:6379/0"
     
     class Config:
         case_sensitive = False

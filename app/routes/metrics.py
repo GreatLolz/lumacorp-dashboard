@@ -1,10 +1,9 @@
-import os
 from prometheus_client import CONTENT_TYPE_LATEST, Gauge, generate_latest
 from fastapi import Response
 from fastapi import APIRouter
 
 from app.wallet import get_wallet_balance
-from app.market import get_profit_indexes, get_corp_profit_indexes, PROFIT_INDEX_PATH, CORP_PROFIT_INDEX_PATH
+from app.market import get_profit_indexes, get_corp_profit_indexes
 from app.config import settings
 
 # Single gauge for all item metrics with each metric as a separate label
@@ -56,9 +55,6 @@ async def metrics():
     for name, balance in balances.items():
         wallet_balance_gauge.labels(division=name).set(balance)
 
-    if not os.path.exists(PROFIT_INDEX_PATH):
-        return Response(status_code=200)
-        
     profit_indexes = await get_profit_indexes()
     
     for index in profit_indexes:
