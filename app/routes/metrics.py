@@ -1,5 +1,4 @@
 import os
-import random
 from prometheus_client import CONTENT_TYPE_LATEST, Gauge, generate_latest
 from fastapi import Response
 from fastapi import APIRouter
@@ -34,6 +33,9 @@ router = APIRouter(prefix="/metrics")
 
 @router.get("/")
 async def metrics():
+    wallet_balance_gauge.clear()
+    item_metrics_gauge.clear()
+
     balances = get_wallet_balance()
     for name, balance in balances.items():
         wallet_balance_gauge.labels(division=name).set(balance)
