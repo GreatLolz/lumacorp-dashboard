@@ -9,6 +9,7 @@ import json
 from app.config import settings
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from functools import lru_cache
 
 TYPES_PATH = "./data/sde/types.jsonl"
 BLUEPRINTS_PATH = "./data/sde/blueprints.jsonl"
@@ -243,3 +244,15 @@ async def get_corp_blueprint_items() -> list[Item]:
     items = await loop.run_in_executor(executor, _filter_corp_owned_items, raw_items)
     print("[SDE] Corp blueprint SDE processed")
     return items
+
+
+@lru_cache(maxsize=1)
+def _type_name_map() -> dict[int, str]:
+    names: dict[int, str] = {}
+    for item in parse_jsonl(TYPES_PATH):
+        names[item.get("_key")] = item.get("name").get("en")
+    return names
+
+
+def get_type_name(type_id: int) -> str:
+    return _type_name_map().get(type_id, str(type_id))

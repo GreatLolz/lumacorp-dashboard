@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     eve_client_secret: str
     eve_callback_url: str = "http://localhost:8000/callback"
 
-    esi_client_useragent: str = "lumacorp-api/0.1.0"
+    esi_client_useragent: str = "lumacorp-api/0.1.1"
     scopes: list[str] = [
         "esi-wallet.read_corporation_wallets.v1",
         "esi-corporations.read_divisions.v1",
@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     min_profit_threshold: float = 10000000
     profit_refresh_seconds: int = 24 * 60 * 60
     wallet_refresh_seconds: int = 5 * 60
+    corp_sales_refresh_seconds: int = 10 * 60
+    corp_sales_window_days: int = 5
     redis_url: str = "redis://localhost:6379/0"
     
     class Config:

@@ -121,11 +121,13 @@ def _calculate_profit_indexes(items: list[Item], cache_key: str) -> list[ProfitI
 
     return profit_indexes
 
-async def get_profit_indexes(refresh: bool = False) -> list[ProfitIndex]:
+async def get_profit_indexes(refresh: bool = False, compute_on_miss: bool = True) -> list[ProfitIndex]:
     if not refresh:
         cached = get_json(PROFIT_INDEX_KEY)
         if cached:
             return [ProfitIndex.model_validate(pi) for pi in cached]
+        if not compute_on_miss:
+            return []
 
     items = await get_items()
     loop = asyncio.get_event_loop()
@@ -134,7 +136,7 @@ async def get_profit_indexes(refresh: bool = False) -> list[ProfitIndex]:
     print("[MARKET] Profit indexes calculated")
     return profit_indexes
 
-async def get_corp_profit_indexes(refresh: bool = False) -> list[ProfitIndex]:
+async def get_corp_profit_indexes(refresh: bool = False, compute_on_miss: bool = True) -> list[ProfitIndex]:
     if not settings.corp_id:
         return []
 
@@ -142,6 +144,8 @@ async def get_corp_profit_indexes(refresh: bool = False) -> list[ProfitIndex]:
         cached = get_json(CORP_PROFIT_INDEX_KEY)
         if cached:
             return [ProfitIndex.model_validate(pi) for pi in cached]
+        if not compute_on_miss:
+            return []
 
     items = await get_corp_blueprint_items()
     if not items:

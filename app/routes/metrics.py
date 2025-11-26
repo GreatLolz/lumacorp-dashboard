@@ -4,6 +4,7 @@ from fastapi import APIRouter
 
 from app.wallet import get_wallet_balance
 from app.market import get_profit_indexes, get_corp_profit_indexes
+from app.sales import get_corp_average_sold_volume
 from app.config import settings
 
 # Gauges follow Prometheus conventions: value is the metric, labels identify the series.
@@ -20,6 +21,12 @@ wallet_balance_gauge = Gauge(
     "esi_wallet_balance",
     "Wallet balance per division",
     ["division"]
+)
+
+corp_sold_volume_gauge = Gauge(
+    "esi_corp_avg_sold_volume",
+    "Average sold volume per item for the corporation over the configured window (days)",
+    ["item_id", "item_name", "source"],
 )
 
 router = APIRouter(prefix="/metrics")
@@ -46,16 +53,27 @@ async def metrics():
     avg_volume_gauge.clear()
     blueprint_cost_gauge.clear()
     return_time_gauge.clear()
+    corp_sold_volume_gauge.clear()
 
     balances = get_wallet_balance()
     for name, balance in balances.items():
         wallet_balance_gauge.labels(division=name).set(balance)
 
-    profit_indexes = await get_profit_indexes()
-    _set_item_metrics(profit_indexes, source="market")
+    profit_indexes = await get_profit_indexes(compute_on_miss=False)
+    if profit_indexes:
+        _set_item_metrics(profit_indexes, source="market")
 
-    corp_profit_indexes = await get_corp_profit_indexes()
-    _set_item_metrics(corp_profit_indexes, source="corp")
+    corp_profit_indexes = await get_corp_profit_indexes(compute_on_miss=False)
+    if corp_profit_indexes:
+        _set_item_metrics(corp_profit_indexes, source="corp")
+
+    corp_avg_sales = get_corp_average_sold_volume()
+    for sale in corp_avg_sales:
+        corp_sold_volume_gauge.labels(
+            item_id=sale.item_id,
+            item_name=sale.item_name,
+            source="corp",
+        ).set(sale.avg_volume)
 
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
     

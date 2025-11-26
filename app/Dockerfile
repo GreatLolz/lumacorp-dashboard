@@ -2,6 +2,9 @@ FROM python:3.11
 
 WORKDIR /app
 
+# Ensure stdout/stderr are unbuffered for immediate log flush
+ENV PYTHONUNBUFFERED=1
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libssl-dev \
